@@ -1,0 +1,146 @@
+(footprint "3RLxxxM-5-S"
+	(version 20241229)
+	(generator "pcbnew")
+	(generator_version "9.0")
+	(layer "F.Cu")
+	(descr "Gas Discharge Tube")
+	(property "Reference" "REF**"
+		(at 0 -3.9 0)
+		(unlocked yes)
+		(layer "F.SilkS")
+		(uuid "e8f9bcbe-5c8b-4aa3-bbb7-3b748e54f7be")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "3RLxxxM-5-S"
+		(at 0 6 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "6001dbb0-4b2d-47df-85a6-302248b2decf")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://jlcpcb.com/api/file/downloadByFileSystemAccessId/8588893268139003904"
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "79c31d0f-b3ef-4d6c-b179-ec7e32275c68")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" "Gas Discharge Tube "
+		(at 0 0 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "1f6120a2-b131-48e0-b2a8-52af27cabf6e")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(attr smd)
+	(fp_line
+		(start -2.5 2.7)
+		(end -1 2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "832bb6a9-a996-45bd-83cd-12ca03957114")
+	)
+	(fp_line
+		(start -1 -2.7)
+		(end -2.5 -2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "8c4765e7-ebc9-459f-b069-338f18e088a5")
+	)
+	(fp_line
+		(start 1 -2.7)
+		(end 2.5 -2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "293f2765-ad3c-4b8e-ace4-753fe1a65f95")
+	)
+	(fp_line
+		(start 1 2.7)
+		(end 2.5 2.7)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "F.SilkS")
+		(uuid "2d893ff7-4540-4680-a515-79dc400253ea")
+	)
+	(fp_rect
+		(start -4.3 -3)
+		(end 4.3 3)
+		(stroke
+			(width 0.05)
+			(type default)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "cf846584-9ae6-4d61-a3af-6ff6a3fbe200")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 4.2 0)
+		(unlocked yes)
+		(layer "F.Fab")
+		(uuid "3192edc3-639a-46bb-ba9c-220770429704")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "1" smd roundrect
+		(at -3.3 0)
+		(size 1.5 5.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(clearance 0.35)
+		(uuid "e0145a1a-6944-4c3f-bd29-d7cb1a25495c")
+	)
+	(pad "2" smd roundrect
+		(at 0 0)
+		(size 2 5.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(clearance 0.35)
+		(uuid "12e4c509-ab12-4065-9dd6-4141add6e2d8")
+	)
+	(pad "3" smd roundrect
+		(at 3.3 0)
+		(size 1.5 5.6)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(roundrect_rratio 0.2)
+		(clearance 0.35)
+		(uuid "f1336a40-17c4-47a8-a5a5-0679fa08ef2a")
+	)
+	(embedded_fonts no)
+)
