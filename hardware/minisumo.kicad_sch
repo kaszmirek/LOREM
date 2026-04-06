@@ -4,6 +4,11 @@
 	(generator_version "10.0")
 	(uuid "0add676a-c35a-4e16-8b7d-61773eb588d7")
 	(paper "A4")
+	(title_block
+		(title "LOREM")
+		(date "2026-04-06")
+		(rev "1.0")
+	)
 	(lib_symbols
 		(symbol "Device:R_Small"
 			(pin_numbers
@@ -2090,16 +2095,6 @@
 	)
 	(wire
 		(pts
-			(xy 109.22 81.28) (xy 132.08 81.28)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "4c5a7502-eb27-4625-b9e2-bbece6c71bde")
-	)
-	(wire
-		(pts
 			(xy 177.8 76.2) (xy 190.5 76.2)
 		)
 		(stroke
@@ -2580,6 +2575,16 @@
 	)
 	(wire
 		(pts
+			(xy 115.57 81.28) (xy 132.08 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "e5cc2e78-8233-4c83-8456-0a2bf6d0afe9")
+	)
+	(wire
+		(pts
 			(xy 219.71 49.53) (xy 234.95 49.53)
 		)
 		(stroke
@@ -2597,6 +2602,16 @@
 			(type default)
 		)
 		(uuid "ee4ae636-37b2-4048-998f-5c6e511e70de")
+	)
+	(wire
+		(pts
+			(xy 100.33 81.28) (xy 110.49 81.28)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "f0e86b70-749c-42c6-931c-db831dfbbb37")
 	)
 	(wire
 		(pts
@@ -3099,7 +3114,7 @@
 		(uuid "ba5178f3-8d17-4187-ae56-c1cad85d9b39")
 	)
 	(label "START"
-		(at 109.22 81.28 0)
+		(at 100.33 81.28 0)
 		(effects
 			(font
 				(size 1.27 1.27)
@@ -3648,6 +3663,86 @@
 			(project "minisumo"
 				(path "/0add676a-c35a-4e16-8b7d-61773eb588d7"
 					(reference "H4")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "Device:R_Small")
+		(at 113.03 81.28 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "7710395c-edc1-46f7-bbbf-65dabe28539c")
+		(property "Reference" "R18"
+			(at 113.03 76.2 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.016 1.016)
+				)
+			)
+		)
+		(property "Value" "330R"
+			(at 113.03 78.74 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" "Resistor_SMD:R_0402_1005Metric"
+			(at 113.03 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 113.03 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Resistor, small symbol"
+			(at 113.03 81.28 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "2"
+			(uuid "9e5bd2e3-50c4-442c-911a-18fed4257658")
+		)
+		(pin "1"
+			(uuid "bd814043-84f4-4fbb-b745-fe6221a805e4")
+		)
+		(instances
+			(project "minisumo"
+				(path "/0add676a-c35a-4e16-8b7d-61773eb588d7"
+					(reference "R18")
 					(unit 1)
 				)
 			)

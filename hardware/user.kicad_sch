@@ -4,6 +4,11 @@
 	(generator_version "10.0")
 	(uuid "19ade331-5c1b-4001-bf91-3158d830ec28")
 	(paper "A4")
+	(title_block
+		(title "LOREM")
+		(date "2026-04-06")
+		(rev "1.0")
+	)
 	(lib_symbols
 		(symbol "Connector_Generic:Conn_01x04"
 			(pin_names
@@ -1139,16 +1144,6 @@
 			)
 			(embedded_fonts no)
 		)
-	)
-	(text "SPRAWDZ PINOUT!!!!"
-		(exclude_from_sim no)
-		(at 162.56 100.838 0)
-		(effects
-			(font
-				(size 1.27 1.27)
-			)
-		)
-		(uuid "0dd74342-573e-4ca8-a308-5fc7db6c5489")
 	)
 	(junction
 		(at 95.25 67.31)
