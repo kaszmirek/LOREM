@@ -1,0 +1,32 @@
+SDK   ?= /home/rusty/Projects/embed/pico-sdk/pico-sdk
+BUILD := build
+PORT  ?= /dev/ttyACM0
+
+.PHONY: all configure build flash verify info watch clean
+
+all: build
+
+configure:
+	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK)
+
+build: $(BUILD)/Makefile
+	cmake --build $(BUILD) -j$(nproc)
+
+flash: build
+	cmake --build $(BUILD) --target flash
+
+verify: build
+	cmake --build $(BUILD) --target verify
+
+info:
+	cmake --build $(BUILD) --target info
+
+watch:
+	@until [ -e $(PORT) ]; do sleep 0.1; done
+	minicom -b 115200 -D $(PORT)
+
+clean:
+	rm -rf $(BUILD)
+
+$(BUILD)/Makefile:
+	$(MAKE) configure
