@@ -77,6 +77,7 @@ int main() {
     bool    tof_ready[6] = {};
     int16_t d[6]         = {};
     bool    running      = false;
+    bool    btn_prev     = false;
 
     gpio_put(PIN_DBG_1, 0);
 
@@ -84,19 +85,26 @@ int main() {
         left.update();
         right.update();
 
-        // Start / stop
+        // PIN_START: high = run, low = stop (non-toggled remote signal)
         bool start_pin = gpio_get(PIN_START);
-        bool btn       = !gpio_get(PIN_BTN_0);
-
-        if (!running && (start_pin || btn)) {
+        if (start_pin && !running) {
             running = true;
             gpio_put(PIN_DBG_1, 1);
         }
-        if (running && !start_pin && !btn) {
+        if (!start_pin && running) {
             running = false;
             left.brake(); right.brake();
             gpio_put(PIN_DBG_1, 0);
         }
+
+        // Button: toggle on press edge
+        bool btn = !gpio_get(PIN_BTN_0);
+        if (btn && !btn_prev) {
+            running = !running;
+            if (running) gpio_put(PIN_DBG_1, 1);
+            else       { left.brake(); right.brake(); gpio_put(PIN_DBG_1, 0); }
+        }
+        btn_prev = btn;
 
         if (!poll_tofs(tofs, tof_ok, tof_ready, d)) continue;
 
