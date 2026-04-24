@@ -89,6 +89,28 @@ static void stop(Motor& left, Motor& right) {
     right.brake();
 }
 
+// ── OLED helpers ───────────────────────────────────────────────────────────
+
+// Draw spatial TOF percentage layout on rows 1-2 (row 0 reserved for caller):
+//   Row 1:  LC   LF   RF   RC    (front arc, by position)
+//   Row 2:  L    <state>    R    (sides + optional centre label)
+// s[0]=L  s[1]=LC  s[2]=LF  s[3]=RF  s[4]=RC  s[5]=R
+static void draw_tofs(OLED& oled, const int16_t d[6], const char* centre = "") {
+    char s[6][4];
+    for (int i = 0; i < 6; i++) {
+        if (d[i] <= 0) { s[i][0]='-'; s[i][1]='-'; s[i][2]='-'; s[i][3]='\0'; }
+        else {
+            int p = (int)d[i] * 100 / TOF_MAX_MM;
+            if (p > 999) p = 999;
+            snprintf(s[i], 4, "%3d", p);
+        }
+    }
+    // "xxx   xxx   xxx   xxx" = 3+3+3+3+3+3+3 = 21
+    oled.printf(0, 1, "%s   %s   %s   %s", s[1], s[2], s[3], s[4]);
+    // "xxx    ccc ccc    xxx" = 3+4+3+1+3+4+3 = 21
+    oled.printf(0, 2, "%s    %-7s    %s", s[0], centre, s[5]);
+}
+
 // ── Non-blocking ToF batch read ────────────────────────────────────────────
 // Returns true when all (working) sensors have fresh data; fills d[6].
 static bool poll_tofs(ToFSensor tofs[], const bool tof_ok[6],
@@ -200,10 +222,17 @@ int main() {
             if (new_tof) {
                 strategy = pick_strategy(d);
                 oled.clear();
-                oled.printf(0, 0, "%-12s", strategy_name(strategy));
-                oled.printf(0, 1, "%4d %4d %4d", d[0], d[1], d[2]);
-                oled.printf(0, 2, "%4d %4d %4d", d[3], d[4], d[5]);
+                oled.printf(0, 0, "%-21s", strategy_name(strategy));
+                draw_tofs(oled, d);
                 oled.display();
+                printf("%-12s | LC:%3d%% LF:%3d%% RF:%3d%% RC:%3d%% | L:%3d%% R:%3d%%\n",
+                    strategy_name(strategy),
+                    d[1]>0 ? d[1]*100/TOF_MAX_MM : -1,
+                    d[2]>0 ? d[2]*100/TOF_MAX_MM : -1,
+                    d[3]>0 ? d[3]*100/TOF_MAX_MM : -1,
+                    d[4]>0 ? d[4]*100/TOF_MAX_MM : -1,
+                    d[0]>0 ? d[0]*100/TOF_MAX_MM : -1,
+                    d[5]>0 ? d[5]*100/TOF_MAX_MM : -1);
             }
 
             // Remote start: immediate
