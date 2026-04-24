@@ -10,12 +10,18 @@
 
 int main() {
   stdio_init_all();
+  gpio_put(PIN_START, 1);
+  gpio_put(PIN_DBG_1, 1);
+  sleep_ms(700);
 
-  i2c_init(i2c1, 400'000);
   gpio_set_function(PIN_I2C_SDA, GPIO_FUNC_I2C);
   gpio_set_function(PIN_I2C_SCL, GPIO_FUNC_I2C);
   gpio_pull_up(PIN_I2C_SDA);
   gpio_pull_up(PIN_I2C_SCL);
+
+  gpio_put(PIN_START, 1);
+  gpio_put(PIN_DBG_1, 0);
+  i2c_init(i2c1, 400'000);
 
   OLED oled(i2c1);
   oled.init();
@@ -36,12 +42,9 @@ int main() {
   // Enabled one at a time so each comes up at 0x29, gets reassigned,
   // then stays online without conflicting with the next sensor.
   ToFSensor tofs[] = {
-    {i2c1, PIN_XSHUT_0, 0x30},
-    {i2c1, PIN_XSHUT_1, 0x31},
-    {i2c1, PIN_XSHUT_2, 0x32},
-    {i2c1, PIN_XSHUT_3, 0x33},
-    {i2c1, PIN_XSHUT_4, 0x34},
-    {i2c1, PIN_XSHUT_5, 0x35},
+      {i2c1, PIN_XSHUT_0, 0x30}, {i2c1, PIN_XSHUT_1, 0x31},
+      {i2c1, PIN_XSHUT_2, 0x32}, {i2c1, PIN_XSHUT_3, 0x33},
+      {i2c1, PIN_XSHUT_4, 0x34}, {i2c1, PIN_XSHUT_5, 0x35},
   };
 
   bool tof_ok[6] = {};
@@ -51,13 +54,17 @@ int main() {
     gpio_put(PIN_START, 0);
     sleep_ms(5);
   }
+  gpio_put(PIN_START, 0);
+  gpio_put(PIN_DBG_1, 1);
 
-  oled.printf(0, 1, "tof:%c%c%c%c%c%c",
-      tof_ok[0]?'O':'x', tof_ok[1]?'O':'x', tof_ok[2]?'O':'x',
-      tof_ok[3]?'O':'x', tof_ok[4]?'O':'x', tof_ok[5]?'O':'x');
+  oled.printf(0, 1, "tof:%c%c%c%c%c%c", tof_ok[0] ? 'O' : 'x',
+              tof_ok[1] ? 'O' : 'x', tof_ok[2] ? 'O' : 'x',
+              tof_ok[3] ? 'O' : 'x', tof_ok[4] ? 'O' : 'x',
+              tof_ok[5] ? 'O' : 'x');
+  oled.printf(0, 2, "boot DONE");
   oled.display();
 
-  // Boot done: DBG1 off
+  sleep_ms(700);
   gpio_put(PIN_START, 0);
 
   Motor left(PIN_AIN1, PIN_AIN2);
@@ -70,31 +77,34 @@ int main() {
 
   bool dbg = false;
   float dir = 1.0f;
+  left.set(1.0f * dir);
+  right.set(1.0f * dir);
   while (true) {
-    left.set(0.3f * dir);
-    right.set(-0.3f * dir);
-    dir = -dir;
 
     bool ready[6] = {};
     while (true) {
       bool all = true;
       for (int i = 0; i < 6; i++) {
-        if (!tof_ok[i]) continue;
-        if (!ready[i]) ready[i] = tofs[i].data_ready();
-        if (!ready[i]) all = false;
+        if (!tof_ok[i])
+          continue;
+        if (!ready[i])
+          ready[i] = tofs[i].data_ready();
+        if (!ready[i])
+          all = false;
       }
-      if (all) break;
+      if (all)
+        break;
     }
 
     int16_t d[6];
-    for (int i = 0; i < 6; i++) d[i] = tof_ok[i] ? tofs[i].read_mm() : -1;
+    for (int i = 0; i < 6; i++)
+      d[i] = tof_ok[i] ? tofs[i].read_mm() : -1;
 
     oled.clear();
-    oled.printf(0, 0, "%d:%4d %d:%4d %d:%4d", 0,d[0], 1,d[1], 2,d[2]);
-    oled.printf(0, 1, "%d:%4d %d:%4d %d:%4d", 3,d[3], 4,d[4], 5,d[5]);
+    oled.printf(0, 0, "bat: %.2fV", battery.voltage());
+    oled.printf(0, 1, "%d:%4d %d:%4d %d:%4d", 0, d[0], 1, d[1], 2, d[2]);
+    oled.printf(0, 2, "%d:%4d %d:%4d %d:%4d", 3, d[3], 4, d[4], 5, d[5]);
+    oled.printf(0, 3, "mot1: %4d, mot2: %4d", enc_l.read(), enc_r.read());
     oled.display();
-
-    dbg = !dbg;
-    gpio_put(PIN_DBG_1, dbg);
   }
 }
