@@ -7,6 +7,9 @@
 //   tof[4] = SLIGHT_RIGHT               tof[5] = HARD_RIGHT
 constexpr int16_t SELECT_MM = 80;
 
+// ── TOF display ───────────────────────────────────────────────────────────
+constexpr int16_t TOF_MAX_MM = 1500;  // 100 % distance for OLED percentage display
+
 // ── Enemy detection ────────────────────────────────────────────────────────
 constexpr int16_t ENEMY_ANY_MM   = 700;  // any TOF < this → enemy visible
 constexpr int16_t ENEMY_FRONT_MM = 500;  // both front TOFs < this → attack straight

@@ -138,15 +138,30 @@ int main() {
     for (int i = 0; i < 6; i++)
       if (d[i] > 0 && d[i] < ENEMY_ANY_MM) { target = true; break; }
 
+    // Convert mm → 3-char percentage string ("---" if invalid, right-justified)
+    auto pct = [](char* buf, int16_t mm) {
+        if (mm <= 0) { buf[0]='-'; buf[1]='-'; buf[2]='-'; buf[3]='\0'; return; }
+        int p = (int)mm * 100 / TOF_MAX_MM;
+        if (p > 999) p = 999;
+        snprintf(buf, 4, "%3d", p);
+    };
+    char s[6][4];
+    for (int i = 0; i < 6; i++) pct(s[i], d[i]);
+
+    // Spatial layout (21 cols × 4 rows):
+    //  Row 0: LC    LF    RF    RC   ← front arc, by position
+    //  Row 1: L    RUN aim    R      ← sides + center status
+    //  s[0]=L  s[1]=LC  s[2]=LF  s[3]=RF  s[4]=RC  s[5]=R
+    //  "xxx   xxx   xxx   xxx"  = 3+3+3+3+3+3+3 = 21
+    //  "xxx    RUN aim    xxx"  = 3+4+3+1+3+4+3 = 21
     oled.clear();
-    oled.printf(0, 0, running ? "RUN" : "STOP");
-    oled.printf(0, 1, "%4d %4d %4d", d[0], d[1], d[2]);
-    oled.printf(0, 2, "%4d %4d %4d", d[3], d[4], d[5]);
-    oled.printf(0, 3, target ? "aim" : "---");
+    oled.printf(0, 0, "%s   %s   %s   %s", s[1], s[2], s[3], s[4]);
+    oled.printf(0, 1, "%s    %s %s    %s",
+                s[0], running ? "RUN" : "STP", target ? "aim" : "---", s[5]);
     oled.display();
 
-    printf("%s %s | %4d %4d %4d | %4d %4d %4d\n",
-           running ? "RUN" : "STOP", target ? "aim" : "---",
-           d[0], d[1], d[2], d[3], d[4], d[5]);
+    printf("LC:%s LF:%s RF:%s RC:%s | L:%s R:%s | %s %s\n",
+           s[1], s[2], s[3], s[4], s[0], s[5],
+           running ? "RUN" : "STP", target ? "aim" : "---");
   }
 }
