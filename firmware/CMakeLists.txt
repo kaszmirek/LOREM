@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 add_subdirectory(lib/VL53L0X/lib)
+add_subdirectory(lib/picowota)
 
 add_executable(lorem
     src/main.cpp
