@@ -1,0 +1,4 @@
+export PICOWOTA_WIFI_SSID=your_ssid
+export PICOWOTA_WIFI_PASS=your_password
+# Optional; 0 = connect to the network, 1 = create it
+# export PICOWOTA_WIFI_AP=0

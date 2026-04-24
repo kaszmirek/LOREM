@@ -1,13 +1,14 @@
-SDK   ?= /home/rusty/Projects/embed/pico-sdk/pico-sdk
-BUILD := build
-PORT  ?= /dev/ttyACM0
+SDK      ?= $(CURDIR)/lib/pico-sdk
+BUILD    := build
+PORT     ?= /dev/ttyACM0
+PICOTOOL ?= picotool
 
-.PHONY: all configure build flash verify info watch clean lsp
+.PHONY: all configure build flash first-flash verify info watch clean lsp
 
 all: build
 
 configure:
-	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DPICO_BOARD=pico_w -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
 
 lsp: $(BUILD)/Makefile
 	ln -sf $(BUILD)/compile_commands.json compile_commands.json
@@ -17,6 +18,9 @@ build: $(BUILD)/Makefile
 
 flash: build
 	cmake --build $(BUILD) --target flash
+
+first-flash: build
+	$(PICOTOOL) load -f -x $(BUILD)/picowota_lorem.uf2
 
 verify: build
 	cmake --build $(BUILD) --target verify

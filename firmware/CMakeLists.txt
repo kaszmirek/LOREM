@@ -23,7 +23,11 @@ target_link_libraries(lorem
     hardware_adc
     hardware_i2c
     VL53L0X_Lib
+    picowota_reboot
 )
+
+picowota_build_standalone(lorem)
+picowota_build_combined(lorem)
 
 pico_set_program_name(lorem "lorem")
 pico_set_program_version(lorem "0.1.0")
