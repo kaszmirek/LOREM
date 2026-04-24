@@ -1,5 +1,4 @@
 #include "adc_sensors.h"
-#include "encoder.h"
 #include "hardware/i2c.h"
 #include "line_sensor.h"
 #include "motor.h"
@@ -67,44 +66,49 @@ int main() {
   sleep_ms(700);
   gpio_put(PIN_START, 0);
 
-  Motor left(PIN_AIN1, PIN_AIN2);
-  Motor right(PIN_BIN1, PIN_BIN2);
+  // Tune kp/ki/kd for your encoder CPR and mechanical load.
+  Motor left(PIN_AIN1, PIN_AIN2, PIN_ENC_L_B, PIN_ENC_L_A, PIN_AISEN, 0.002f,
+             0.005f, 0.0001f);
+  Motor right(PIN_BIN1, PIN_BIN2, PIN_ENC_R_A, PIN_ENC_R_B, PIN_BISEN, 0.002f,
+              0.005f, 0.0001f);
 
-  Encoder enc_l(PIN_ENC_L_A, PIN_ENC_L_B);
-  Encoder enc_r(PIN_ENC_R_A, PIN_ENC_R_B);
-  CurrentSensor curr_l(PIN_AISEN);
-  CurrentSensor curr_r(PIN_BISEN);
+  left.set_pwm(1.0f);   // full speed to measure max velocity
+  right.set_pwm(1.0f);
 
-  bool dbg = false;
-  float dir = 1.0f;
-  left.set(1.0f * dir);
-  right.set(1.0f * dir);
+  bool  tof_ready[6] = {};
+  float max_vel_l = 0.0f, max_vel_r = 0.0f;
+
   while (true) {
+    left.update();
+    right.update();
 
-    bool ready[6] = {};
-    while (true) {
-      bool all = true;
-      for (int i = 0; i < 6; i++) {
-        if (!tof_ok[i])
-          continue;
-        if (!ready[i])
-          ready[i] = tofs[i].data_ready();
-        if (!ready[i])
-          all = false;
-      }
-      if (all)
-        break;
+    max_vel_l = std::max(max_vel_l, left.velocity_mm_s());
+    max_vel_r = std::max(max_vel_r, right.velocity_mm_s());
+
+    // ── ToF: non-blocking poll ────────────────────────────────────────────
+    bool all_ready = true;
+    for (int i = 0; i < 6; i++) {
+      if (!tof_ok[i])
+        continue;
+      if (!tof_ready[i])
+        tof_ready[i] = tofs[i].data_ready();
+      if (!tof_ready[i])
+        all_ready = false;
     }
 
-    int16_t d[6];
-    for (int i = 0; i < 6; i++)
-      d[i] = tof_ok[i] ? tofs[i].read_mm() : -1;
+    if (all_ready) {
+      int16_t d[6];
+      for (int i = 0; i < 6; i++)
+        d[i] = tof_ok[i] ? tofs[i].read_mm() : -1;
+      for (int i = 0; i < 6; i++)
+        tof_ready[i] = false;
 
-    oled.clear();
-    oled.printf(0, 0, "bat: %.2fV", battery.voltage());
-    oled.printf(0, 1, "%d:%4d %d:%4d %d:%4d", 0, d[0], 1, d[1], 2, d[2]);
-    oled.printf(0, 2, "%d:%4d %d:%4d %d:%4d", 3, d[3], 4, d[4], 5, d[5]);
-    oled.printf(0, 3, "mot1: %4d, mot2: %4d", enc_l.read(), enc_r.read());
-    oled.display();
+      oled.clear();
+      oled.printf(0, 0, "mx:%4.0f %4.0f mm/s", max_vel_l, max_vel_r);
+      oled.printf(0, 1, "v:%4.0f %4.0f mm/s", left.velocity_mm_s(), right.velocity_mm_s());
+      oled.printf(0, 2, "%d:%4d %d:%4d %d:%4d", 0, d[0], 1, d[1], 2, d[2]);
+      oled.printf(0, 3, "%d:%4d %d:%4d %d:%4d", 3, d[3], 4, d[4], 5, d[5]);
+      oled.display();
+    }
   }
 }
