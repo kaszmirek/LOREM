@@ -2,12 +2,15 @@ SDK   ?= /home/rusty/Projects/embed/pico-sdk/pico-sdk
 BUILD := build
 PORT  ?= /dev/ttyACM0
 
-.PHONY: all configure build flash verify info watch clean
+.PHONY: all configure build flash verify info watch clean lsp
 
 all: build
 
 configure:
-	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK)
+	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+
+lsp: $(BUILD)/Makefile
+	ln -sf $(BUILD)/compile_commands.json compile_commands.json
 
 build: $(BUILD)/Makefile
 	cmake --build $(BUILD) -j$(nproc)
