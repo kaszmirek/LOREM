@@ -1,4 +1,5 @@
 #include "hardware/i2c.h"
+#include "imu.h"
 #include "motor.h"
 #include "oled.h"
 #include "pins.h"
@@ -17,10 +18,15 @@ int main() {
     OLED oled(i2c1);
     oled.init();
 
+    IMU imu(i2c1);
+    imu.init();
+
     Motor left (PIN_AIN1, PIN_AIN2, PIN_ENC_L_B, PIN_ENC_L_A, PIN_AISEN,
                 0.002f, 0.005f, 0.0001f);
     Motor right(PIN_BIN1, PIN_BIN2, PIN_ENC_R_A, PIN_ENC_R_B, PIN_BISEN,
                 0.002f, 0.005f, 0.0001f);
+
+    uint64_t hit_until = 0;
 
     // Ramp 30% -> 100% in 5% steps, 200 ms per step
     for (int pct = 30; pct <= 100; pct += 5) {
@@ -33,17 +39,25 @@ int main() {
             left.update();
             right.update();
 
+            if (imu.tap_detected())
+                hit_until = time_us_64() + 500'000;
+
             float l_curr = left.current_a();
             float r_curr = right.current_a();
 
             // JSON line — compatible with VSCode serial monitor / plotters
-            printf("{\"pwm\":%d,\"l_curr\":%.3f,\"r_curr\":%.3f}\n",
-                   pct, l_curr, r_curr);
+            printf("{\"pwm\":%d,\"l_curr\":%.3f,\"r_curr\":%.3f,\"hit\":%s}\n",
+                   pct, l_curr, r_curr,
+                   time_us_64() < hit_until ? "true" : "false");
 
             oled.clear();
-            oled.printf(0, 0, "RAMP  %3d%%", pct);
-            oled.printf(0, 1, "L: %.2f A", l_curr);
-            oled.printf(0, 2, "R: %.2f A", r_curr);
+            if (time_us_64() < hit_until) {
+                oled.print(0, 0, "HIT");
+            } else {
+                oled.printf(0, 0, "RAMP  %3d%%", pct);
+                oled.printf(0, 1, "L: %.2f A", l_curr);
+                oled.printf(0, 2, "R: %.2f A", r_curr);
+            }
             oled.display();
 
             sleep_ms(50);

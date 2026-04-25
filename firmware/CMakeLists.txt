@@ -59,6 +59,7 @@ pico_enable_stdio_uart(motor_test 0)
 add_executable(engine_ramp
     src/engine_ramp.cpp
     src/encoder.cpp
+    src/imu.cpp
     src/motor.cpp
     src/oled.cpp
 )
