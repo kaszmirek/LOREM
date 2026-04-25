@@ -1,6 +1,7 @@
 #include "adc_sensors.h"
 #include "config.h"
 #include "hardware/i2c.h"
+#include "imu.h"
 #include "motor.h"
 #include "oled.h"
 #include "pins.h"
@@ -56,6 +57,12 @@ int main() {
         tof_ok[3]?'O':'x', tof_ok[4]?'O':'x', tof_ok[5]?'O':'x');
     oled.display();
 
+    // ── IMU ────────────────────────────────────────────────────────────────
+    IMU imu(i2c1);
+    bool imu_ok = imu.init();
+    oled.printf(0, 2, "imu:%s", imu_ok ? "OK" : "ERR");
+    oled.display();
+
     // ── Motors ─────────────────────────────────────────────────────────────
     Motor left (PIN_AIN1, PIN_AIN2, PIN_ENC_L_B, PIN_ENC_L_A, PIN_AISEN,
                 0.002f, 0.005f, 0.0001f);
@@ -65,7 +72,7 @@ int main() {
     gpio_put(PIN_DBG_1, 0);
 
     // ── Run ────────────────────────────────────────────────────────────────
-    Robot robot(left, right, oled, tofs, tof_ok);
+    Robot robot(left, right, oled, tofs, tof_ok, imu);
 
     while (true) {
         left.update();

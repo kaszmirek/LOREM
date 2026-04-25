@@ -12,6 +12,7 @@ add_subdirectory(lib/VL53L0X/lib)
 add_executable(lorem
     src/main.cpp
     src/encoder.cpp
+    src/imu.cpp
     src/motor.cpp
     src/oled.cpp
     src/robot.cpp

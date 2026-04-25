@@ -70,8 +70,8 @@ static float steer(const int16_t d[6]) {
 // ── Robot ─────────────────────────────────────────────────────────────────
 
 Robot::Robot(Motor& left, Motor& right, OLED& oled,
-             ToFSensor tofs[6], const bool tof_ok[6])
-    : _left(left), _right(right), _oled(oled), _tofs(tofs),
+             ToFSensor tofs[6], const bool tof_ok[6], IMU& imu)
+    : _left(left), _right(right), _oled(oled), _tofs(tofs), _imu(imu),
       _state(State::WAIT_START), _strategy(Strategy::ROT_RIGHT),
       _state_t(time_us_64())
 {
@@ -253,8 +253,7 @@ void Robot::update() {
         _left.set_pwm(ATTACK_SPEED);
         _right.set_pwm(ATTACK_SPEED);
 
-        if (_left.current_a()  > IMPACT_CURR_A ||
-            _right.current_a() > IMPACT_CURR_A) {
+        if (_imu.tap_detected()) {
             _left.set_curr_target(PUSH_CURR_A);
             _right.set_curr_target(PUSH_CURR_A);
             _state   = State::PUSH;

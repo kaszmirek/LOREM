@@ -1,4 +1,5 @@
 #pragma once
+#include "imu.h"
 #include "motor.h"
 #include "oled.h"
 #include "tof.h"
@@ -12,7 +13,7 @@ enum class State    { WAIT_START, COUNTDOWN, MANEUVER, SEARCH, HOME, ATTACK, PUS
 class Robot {
 public:
     Robot(Motor& left, Motor& right, OLED& oled,
-          ToFSensor tofs[6], const bool tof_ok[6]);
+          ToFSensor tofs[6], const bool tof_ok[6], IMU& imu);
 
     void update();
 
@@ -21,6 +22,7 @@ private:
     Motor&     _right;
     OLED&      _oled;
     ToFSensor* _tofs;
+    IMU&       _imu;
 
     bool     _tof_ok[6]    = {};
     bool     _tof_ready[6] = {};
