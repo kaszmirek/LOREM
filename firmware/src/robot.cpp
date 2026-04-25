@@ -15,6 +15,7 @@ static const char* state_name(State s) {
         case State::WAIT_START: return "WAIT";
         case State::COUNTDOWN:  return "CNTDWN";
         case State::MANEUVER:   return "MANUV";
+        case State::WAIT:       return "WAIT";
         case State::SEARCH:     return "SEARCH";
         case State::HOME:       return "HOME";
         case State::ATTACK:     return "ATTACK";
@@ -56,16 +57,13 @@ static bool pick_strategy(const int16_t d[6], Strategy& out) {
     }
 }
 
-struct Detection { bool left, front, right; };
+struct Detection { bool attack; bool visible; };
 
 static Detection detect(const int16_t d[6]) {
-    bool front = (valid(d[2]) && d[2] < ENEMY_FRONT_MM) && (valid(d[3]) && d[3] < ENEMY_FRONT_MM);
-    if (front) return { .left = false, .front = true, .right = false };
-    return {
-        .left  = (valid(d[0]) && d[0] < ENEMY_ANY_MM) || (valid(d[1]) && d[1] < ENEMY_ANY_MM),
-        .front = false,
-        .right = (valid(d[4]) && d[4] < ENEMY_ANY_MM) || (valid(d[5]) && d[5] < ENEMY_ANY_MM),
-    };
+    bool attack = (valid(d[2]) && d[2] < ENEMY_FRONT_MM) && (valid(d[3]) && d[3] < ENEMY_FRONT_MM);
+    bool visible = false;
+    for (int i = 0; i < 6; i++) visible |= valid(d[i]) && d[i] < ENEMY_ANY_MM;
+    return { attack, visible };
 }
 
 // Steering bias: negative = turn left, positive = turn right, range roughly [-1, 1].
@@ -75,11 +73,11 @@ static float steer(const int16_t d[6]) {
         if (!valid(v)) return 0.0f;
         return 1.0f - std::min((float)v / (float)ENEMY_ANY_MM, 1.0f);
     };
-    float l   = c(d[0]) * 2.0f + c(d[1]);   // left weight
-    float r   = c(d[5]) * 2.0f + c(d[4]);   // right weight
-    float sum = l + r;
-    if (sum < 0.01f) return 0.0f;
-    return (r - l) / sum;   // positive → turn right
+    float l   = c(d[0]) * STEER_CORNER_WEIGHT + c(d[1]) + c(d[2]) * STEER_FRONT_WEIGHT;
+    float r   = c(d[5]) * STEER_CORNER_WEIGHT + c(d[4]) + c(d[3]) * STEER_FRONT_WEIGHT;
+    if (l + r < STEER_DEADBAND) return 0.0f;
+    // divide by max possible per-side so weights actually affect magnitude
+    return std::clamp((r - l) / (STEER_CORNER_WEIGHT + 1.0f + STEER_FRONT_WEIGHT), -1.0f, 1.0f);
 }
 
 // ── Robot ─────────────────────────────────────────────────────────────────
@@ -189,12 +187,12 @@ void Robot::update() {
 
     // ──────────────────────────────────────────────────────────────────────
     case State::COUNTDOWN: {
-        uint32_t remaining = 5 - (in_state_ms / 1000);
+        uint32_t remaining = COUNTDOWN_MS / 1000 - (in_state_ms / 1000);
         _oled.clear();
         _oled.printf(0, 0, "%-12s", strategy_name(_strategy));
         _oled.printf(0, 1, "START in %u", remaining);
         _oled.display();
-        if (in_state_ms >= 5000) {
+        if (in_state_ms >= COUNTDOWN_MS) {
             _state   = State::MANEUVER;
             _state_t = now;
         }
@@ -227,29 +225,50 @@ void Robot::update() {
         if (new_tof) _draw_fight();
 
         if (in_state_ms >= START_MANEUVER_MS) {
+            bool rot = (_strategy == Strategy::ROT_LEFT || _strategy == Strategy::ROT_RIGHT);
             if (new_tof) {
                 Detection det = detect(_d);
-                if (det.front)                  _state = State::ATTACK;
-                else if (det.left || det.right)  _state = State::HOME;
-                else                             _state = State::SEARCH;
+                float     s   = steer(_d);
+                if (det.attack)        _state = State::ATTACK;
+                else if (det.visible) { if (s != 0.0f) _search_dir = s > 0.0f ? 1 : -1; _state = State::HOME; }
+                else if (rot)         { _state = State::WAIT; _wait_enc_start = _left.encoder(); _wait_dir = 1; }
+                else                  { _state = State::SEARCH; }
             } else {
-                _state = State::SEARCH;
+                if (rot) { _state = State::WAIT; _wait_enc_start = _left.encoder(); _wait_dir = 1; }
+                else     { _state = State::SEARCH; }
             }
             _state_t = now;
         }
         break;
 
     // ──────────────────────────────────────────────────────────────────────
-    case State::SEARCH:
-        if ((in_state_ms / SEARCH_FLIP_MS) % 2 == 0)
-            _set_motors(+SEARCH_TURN_SPEED, -SEARCH_TURN_SPEED);
-        else
-            _set_motors(-SEARCH_TURN_SPEED, +SEARCH_TURN_SPEED);
+    case State::WAIT: {
+        int32_t delta = std::abs(_left.encoder() - _wait_enc_start);
+        if (delta >= static_cast<int32_t>(WAIT_SCAN_REVS * Motor::CPR)) {
+            _wait_dir       = -_wait_dir;
+            _wait_enc_start = _left.encoder();
+        }
+        _set_motors(WAIT_SCAN_SPEED * _wait_dir, -WAIT_SCAN_SPEED * _wait_dir);
 
         if (new_tof) {
             Detection det = detect(_d);
-            if (det.front)                  { _state = State::ATTACK; _state_t = now; }
-            else if (det.left || det.right)  { _state = State::HOME;   _state_t = now; }
+            float     s   = steer(_d);
+            if (det.attack)        { _state = State::ATTACK; _state_t = now; }
+            else if (det.visible)  { if (s != 0.0f) _search_dir = s > 0.0f ? 1 : -1; _state = State::HOME; _state_t = now; }
+            _draw_fight();
+        }
+        break;
+    }
+
+    // ──────────────────────────────────────────────────────────────────────
+    case State::SEARCH:
+        _set_motors(SEARCH_TURN_SPEED * _search_dir, -SEARCH_TURN_SPEED * _search_dir);
+
+        if (new_tof) {
+            Detection det = detect(_d);
+            float     s   = steer(_d);
+            if (det.attack)        { _state = State::ATTACK; _state_t = now; }
+            else if (det.visible)  { if (s != 0.0f) _search_dir = s > 0.0f ? 1 : -1; _state = State::HOME; _state_t = now; }
             _draw_fight();
         }
         break;
@@ -258,15 +277,13 @@ void Robot::update() {
     case State::HOME:
         if (new_tof) {
             Detection det = detect(_d);
-            if (det.front) {
-                _state = State::ATTACK; _state_t = now; break;
-            }
-            if (!det.left && !det.right) {
-                _state = State::SEARCH; _state_t = now; break;
-            }
-            float s = steer(_d);  // positive → turn right
-            _set_motors(std::clamp(HOME_FWD + HOME_TURN * s, -1.0f, 1.0f),
-                        std::clamp(HOME_FWD - HOME_TURN * s, -1.0f, 1.0f));
+            if (det.attack)   { _state = State::ATTACK; _state_t = now; break; }
+            if (!det.visible) { _state = State::SEARCH; _state_t = now; break; }
+            float s   = steer(_d);
+            float fwd = HOME_FWD * (1.0f - std::abs(s));
+            if (s != 0.0f) _search_dir = s > 0.0f ? 1 : -1;
+            _set_motors(std::clamp(fwd + HOME_TURN * s, -1.0f, 1.0f),
+                        std::clamp(fwd - HOME_TURN * s, -1.0f, 1.0f));
             _draw_fight();
         }
         break;
@@ -283,8 +300,9 @@ void Robot::update() {
                 _state_t = now;
             } else {
                 Detection det = detect(_d);
-                if (!det.front && !det.left && !det.right) { _state = State::SEARCH; _state_t = now; }
-                else if (!det.front)                        { _state = State::HOME;   _state_t = now; }
+                float     s   = steer(_d);
+                if (!det.attack && !det.visible)  { _state = State::SEARCH; _state_t = now; }
+                else if (!det.attack)             { if (s != 0.0f) _search_dir = s > 0.0f ? 1 : -1; _state = State::HOME; _state_t = now; }
             }
             _draw_fight();
         }
@@ -292,7 +310,7 @@ void Robot::update() {
 
     // ──────────────────────────────────────────────────────────────────────
     case State::PUSH:
-        _set_motors(1.0f, 1.0f);
+        _set_motors(PUSH_SPEED, PUSH_SPEED);
 
         if (new_tof) _draw_fight();
         break;

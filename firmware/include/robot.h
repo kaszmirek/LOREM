@@ -7,7 +7,7 @@
 #include <cstdint>
 
 enum class Strategy { HARD_LEFT, SLIGHT_LEFT, ROT_LEFT, ROT_RIGHT, SLIGHT_RIGHT, HARD_RIGHT };
-enum class State    { WAIT_START, COUNTDOWN, MANEUVER, SEARCH, HOME, ATTACK, PUSH };
+enum class State    { WAIT_START, COUNTDOWN, MANEUVER, WAIT, SEARCH, HOME, ATTACK, PUSH };
 
 // Combat state machine.
 // Construct once after all peripherals are ready, then call update() every loop iteration.
@@ -39,6 +39,9 @@ private:
     bool     _tof_ready[6] = {};
     int16_t  _d[6]         = {};
     Strategy _strategy;
+    int32_t  _wait_enc_start = 0;
+    int8_t   _wait_dir       = 1;
+    int8_t   _search_dir     = 1;
     float    _lpwm = 0.0f, _rpwm = 0.0f;
 
     bool _poll_tofs();
