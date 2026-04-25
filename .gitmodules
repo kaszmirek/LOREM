@@ -1,3 +1,7 @@
 [submodule "firmware/lib/pico-sdk"]
 	path = firmware/lib/pico-sdk
 	url = https://github.com/raspberrypi/pico-sdk.git
+
+[submodule "firmware/lib/VL53L0X"]
+	path = firmware/lib/VL53L0X
+	url = https://github.com/Imel23/VL53L0X-pico.git

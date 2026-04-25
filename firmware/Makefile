@@ -2,11 +2,14 @@ SDK   ?= lib/pico-sdk
 BUILD := build
 PORT  ?= /dev/ttyACM0
 
-.PHONY: all configure build flash verify info watch clean lsp \
+.PHONY: all init configure build flash verify info watch clean lsp \
         motor_test motor_test_flash \
         engine_ramp engine_ramp_flash watch_engine_ramp
 
 all: build
+
+init:
+	git submodule update --init --recursive
 
 configure:
 	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
