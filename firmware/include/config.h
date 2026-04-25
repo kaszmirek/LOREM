@@ -8,8 +8,8 @@
 constexpr int16_t SELECT_MM = 80;
 
 // ── Enemy detection ────────────────────────────────────────────────────────
-constexpr int16_t ENEMY_ANY_MM   = 700;   // any TOF < this → enemy visible
-constexpr int16_t ENEMY_FRONT_MM = 500;   // both front TOFs < this → attack straight
+constexpr int16_t ENEMY_ANY_MM   = 800;   // any TOF < this → enemy visible
+constexpr int16_t ENEMY_FRONT_MM = 650;   // both front TOFs < this → attack straight
 
 // ── Display scaling ────────────────────────────────────────────────────────
 constexpr int16_t TOF_MAX_MM = 1200;      // VL53L0X reliable max @ 20 ms budget

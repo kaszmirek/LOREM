@@ -4,7 +4,7 @@
 #include "tof.h"
 #include <cstdint>
 
-enum class Strategy { HARD_LEFT, SLIGHT_LEFT, COAST, SLIGHT_RIGHT, HARD_RIGHT };
+enum class Strategy { HARD_LEFT, SLIGHT_LEFT, ROT_LEFT, ROT_RIGHT, SLIGHT_RIGHT, HARD_RIGHT };
 enum class State    { WAIT_START, COUNTDOWN, MANEUVER, SEARCH, HOME, ATTACK, PUSH };
 
 // Combat state machine.

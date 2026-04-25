@@ -14,14 +14,15 @@ static const char* strategy_name(Strategy s) {
     switch (s) {
         case Strategy::HARD_LEFT:    return "HARD LEFT";
         case Strategy::SLIGHT_LEFT:  return "SLIGHT LEFT";
-        case Strategy::COAST:        return "COAST";
+        case Strategy::ROT_LEFT:     return "ROT LEFT";
+        case Strategy::ROT_RIGHT:    return "ROT RIGHT";
         case Strategy::SLIGHT_RIGHT: return "SLIGHT RIGHT";
         case Strategy::HARD_RIGHT:   return "HARD RIGHT";
     }
     return "?";
 }
 
-// Closest TOF below SELECT_MM wins; default COAST.
+// Closest TOF below SELECT_MM wins; default ROT_RIGHT.
 static Strategy pick_strategy(const int16_t d[6]) {
     int     best_i = -1;
     int16_t best_d = SELECT_MM;
@@ -34,11 +35,11 @@ static Strategy pick_strategy(const int16_t d[6]) {
     switch (best_i) {
         case 0: return Strategy::HARD_LEFT;
         case 1: return Strategy::SLIGHT_LEFT;
-        case 2: return Strategy::COAST;
-        case 3: return Strategy::COAST;
+        case 2: return Strategy::ROT_LEFT;
+        case 3: return Strategy::ROT_RIGHT;
         case 4: return Strategy::SLIGHT_RIGHT;
         case 5: return Strategy::HARD_RIGHT;
-        default: return Strategy::COAST;
+        default: return Strategy::ROT_RIGHT;
     }
 }
 
@@ -71,7 +72,7 @@ static float steer(const int16_t d[6]) {
 Robot::Robot(Motor& left, Motor& right, OLED& oled,
              ToFSensor tofs[6], const bool tof_ok[6])
     : _left(left), _right(right), _oled(oled), _tofs(tofs),
-      _state(State::WAIT_START), _strategy(Strategy::COAST),
+      _state(State::WAIT_START), _strategy(Strategy::ROT_RIGHT),
       _state_t(time_us_64())
 {
     for (int i = 0; i < 6; i++)
@@ -183,8 +184,13 @@ void Robot::update() {
             _left.set_pwm(START_FWD_SPEED - START_SLIGHT_BIAS);
             _right.set_pwm(START_FWD_SPEED);
             break;
-        case Strategy::COAST:
-            _left.coast(); _right.coast();
+        case Strategy::ROT_LEFT:
+            _left.set_pwm(-START_HARD_TURN);
+            _right.set_pwm(+START_HARD_TURN);
+            break;
+        case Strategy::ROT_RIGHT:
+            _left.set_pwm(+START_HARD_TURN);
+            _right.set_pwm(-START_HARD_TURN);
             break;
         case Strategy::SLIGHT_RIGHT:
             _left.set_pwm(START_FWD_SPEED);
