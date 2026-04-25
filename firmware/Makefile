@@ -1,4 +1,4 @@
-SDK   ?= /home/rusty/Projects/embed/pico-sdk/pico-sdk
+SDK   ?= lib/pico-sdk
 BUILD := build
 PORT  ?= /dev/ttyACM0
 
