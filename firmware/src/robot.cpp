@@ -69,6 +69,11 @@ static float steer(const int16_t d[6]) {
 
 // ── Robot ─────────────────────────────────────────────────────────────────
 
+void Robot::_brake_all() {
+    _left.brake();
+    _right.brake();
+}
+
 Robot::Robot(Motor& left, Motor& right, OLED& oled,
              ToFSensor tofs[6], const bool tof_ok[6], IMU& imu)
     : _left(left), _right(right), _oled(oled), _tofs(tofs), _imu(imu),
@@ -118,15 +123,9 @@ void Robot::update() {
     uint64_t now         = time_us_64();
     uint32_t in_state_ms = (uint32_t)((now - _state_t) / 1000);
 
-    // ── Stop signal: PIN_START went low mid-fight ──────────────────────────
-    if (_state != State::WAIT_START && _state != State::COUNTDOWN) {
-        if (!gpio_get(PIN_START)) {
-            _left.brake();
-            _right.brake();
-            _state   = State::WAIT_START;
-            _state_t = now;
-        }
-    }
+    // ── Stop signal: delegated to subclass ────────────────────────────────
+    if (_state != State::WAIT_START && _state != State::COUNTDOWN)
+        _check_stop();
 
     switch (_state) {
 
@@ -148,15 +147,7 @@ void Robot::update() {
                 _d[5]>0 ? _d[5]*100/TOF_MAX_MM : -1);
         }
 
-        if (gpio_get(PIN_START)) {
-            _state   = State::MANEUVER;
-            _state_t = now;
-            break;
-        }
-        if (!gpio_get(PIN_BTN_0)) {
-            _state   = State::COUNTDOWN;
-            _state_t = now;
-        }
+        _check_start();
         break;
 
     // ──────────────────────────────────────────────────────────────────────
@@ -277,5 +268,42 @@ void Robot::update() {
             _state = State::SEARCH; _state_t = now;
         }
         break;
+    }
+}
+
+// ── PinStartRobot ─────────────────────────────────────────────────────────
+
+void PinStartRobot::_check_start() {
+    if (gpio_get(PIN_START)) {
+        _state = State::MANEUVER; _state_t = time_us_64();
+    }
+}
+
+void PinStartRobot::_check_stop() {
+    if (!gpio_get(PIN_START)) {
+        _brake_all();
+        _state = State::WAIT_START; _state_t = time_us_64();
+    }
+}
+
+// ── ButtonRobot ───────────────────────────────────────────────────────────
+
+ButtonRobot::ButtonRobot(Motor& left, Motor& right, OLED& oled,
+                         ToFSensor tofs[6], const bool tof_ok[6], IMU& imu)
+    : Robot(left, right, oled, tofs, tof_ok, imu), _btn(PIN_BTN_0)
+{}
+
+void ButtonRobot::_check_start() {
+    _btn.update();
+    if (_btn.pressed()) {
+        _state = State::COUNTDOWN; _state_t = time_us_64();
+    }
+}
+
+void ButtonRobot::_check_stop() {
+    _btn.update();
+    if (_btn.pressed()) {
+        _brake_all();
+        _state = State::WAIT_START; _state_t = time_us_64();
     }
 }

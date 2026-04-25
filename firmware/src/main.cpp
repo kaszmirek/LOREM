@@ -16,9 +16,6 @@ int main() {
     gpio_init(PIN_START);
     gpio_set_dir(PIN_START, GPIO_IN);
 
-    gpio_init(PIN_BTN_0);
-    gpio_set_dir(PIN_BTN_0, GPIO_IN);
-
     gpio_init(PIN_DBG_1);
     gpio_set_dir(PIN_DBG_1, GPIO_OUT);
     gpio_put(PIN_DBG_1, 1);
@@ -72,11 +69,25 @@ int main() {
     gpio_put(PIN_DBG_1, 0);
 
     // ── Run ────────────────────────────────────────────────────────────────
-    Robot robot(left, right, oled, tofs, tof_ok, imu);
+    PinStartRobot pin_robot(left, right, oled, tofs, tof_ok, imu);
+    ButtonRobot   btn_robot(left, right, oled, tofs, tof_ok, imu);
+    Robot* active = nullptr;
+
+    while (active == nullptr) {
+        left.update();
+        right.update();
+        if (gpio_get(PIN_START)) {
+            active = &pin_robot;
+            break;
+        }
+        btn_robot.update();
+        if (btn_robot.get_state() != State::WAIT_START)
+            active = &btn_robot;
+    }
 
     while (true) {
         left.update();
         right.update();
-        robot.update();
+        active->update();
     }
 }

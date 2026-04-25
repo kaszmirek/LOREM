@@ -1,4 +1,5 @@
 #pragma once
+#include "button.h"
 #include "imu.h"
 #include "motor.h"
 #include "oled.h"
@@ -17,9 +18,19 @@ public:
 
     void update();
 
-private:
+    State get_state() const { return _state; }
+
+protected:
+    virtual void _check_start() {}  // called in WAIT_START; subclass transitions to COUNTDOWN or MANEUVER
+    virtual void _check_stop()  {}  // called in active states; subclass brakes + returns to WAIT_START
+    void _brake_all();
+
     Motor&     _left;
     Motor&     _right;
+    State      _state;
+    uint64_t   _state_t;
+
+private:
     OLED&      _oled;
     ToFSensor* _tofs;
     IMU&       _imu;
@@ -27,10 +38,30 @@ private:
     bool     _tof_ok[6]    = {};
     bool     _tof_ready[6] = {};
     int16_t  _d[6]         = {};
-    State    _state;
     Strategy _strategy;
-    uint64_t _state_t;
 
     bool _poll_tofs();
     void _draw_tofs(const char* centre = "");
+};
+
+// Start: PIN_START high → MANEUVER. Stop: PIN_START low → WAIT_START.
+class PinStartRobot : public Robot {
+public:
+    using Robot::Robot;
+protected:
+    void _check_start() override;
+    void _check_stop()  override;
+};
+
+// Start: BTN_0 press → COUNTDOWN → MANEUVER. Stop: BTN_0 press → WAIT_START.
+// PIN_START is ignored entirely.
+class ButtonRobot : public Robot {
+public:
+    ButtonRobot(Motor& left, Motor& right, OLED& oled,
+                ToFSensor tofs[6], const bool tof_ok[6], IMU& imu);
+protected:
+    void _check_start() override;
+    void _check_stop()  override;
+private:
+    Button _btn;
 };
