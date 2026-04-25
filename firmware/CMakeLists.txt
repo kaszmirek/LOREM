@@ -55,6 +55,33 @@ pico_add_extra_outputs(motor_test)
 pico_enable_stdio_usb(motor_test 1)
 pico_enable_stdio_uart(motor_test 0)
 
+add_executable(engine_ramp
+    src/engine_ramp.cpp
+    src/encoder.cpp
+    src/motor.cpp
+    src/oled.cpp
+)
+
+target_include_directories(engine_ramp PRIVATE include)
+
+target_link_libraries(engine_ramp
+    pico_stdlib
+    hardware_pwm
+    hardware_adc
+    hardware_i2c
+)
+
+pico_set_program_name(engine_ramp "engine_ramp")
+pico_add_extra_outputs(engine_ramp)
+pico_enable_stdio_usb(engine_ramp 1)
+pico_enable_stdio_uart(engine_ramp 0)
+
+add_custom_target(engine_ramp_flash
+    COMMAND ${PICOTOOL} load -f -x $<TARGET_FILE_DIR:engine_ramp>/engine_ramp.uf2
+    DEPENDS engine_ramp
+    COMMENT "Flashing engine_ramp.uf2 via picotool"
+)
+
 find_program(PICOTOOL picotool REQUIRED)
 add_custom_target(flash
     COMMAND ${PICOTOOL} load -f -x $<TARGET_FILE_DIR:lorem>/lorem.uf2
