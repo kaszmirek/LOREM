@@ -34,4 +34,5 @@ private:
     VL53L0X _sensor;
     uint    _xshut;
     uint8_t _addr;
+    int16_t _last_good = -1;
 };

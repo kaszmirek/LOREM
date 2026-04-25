@@ -1,4 +1,6 @@
 #include "tof.h"
+#include "config.h"
+#include <cstdlib>
 
 bool ToFSensor::init() {
     enable();
@@ -19,7 +21,10 @@ bool ToFSensor::data_ready() {
 
 int16_t ToFSensor::read_mm() {
     uint16_t dist = _sensor.readRangeContinuousMillimeters();
-    if (_sensor.timeoutOccurred()) return -1;
-    if (dist >= 8000) return -1;  // VL53L0X out-of-range sentinel (~8190)
-    return static_cast<int16_t>(dist);
+    if (_sensor.timeoutOccurred() || dist >= TOF_MAX_MM)
+        return _last_good;
+    int16_t d = static_cast<int16_t>(dist);
+    if (_last_good >= 0 && std::abs(d - _last_good) > TOF_SPIKE_MM)
+        return _last_good;
+    return _last_good = d;
 }

@@ -12,7 +12,8 @@ constexpr int16_t ENEMY_ANY_MM   = 800;   // any TOF < this → enemy visible
 constexpr int16_t ENEMY_FRONT_MM = 650;   // both front TOFs < this → attack straight
 
 // ── Display scaling ────────────────────────────────────────────────────────
-constexpr int16_t TOF_MAX_MM = 1200;      // VL53L0X reliable max @ 20 ms budget
+constexpr int16_t TOF_MAX_MM   = 1000;    // VL53L0X reliable max @ 20 ms budget
+constexpr int16_t TOF_SPIKE_MM = 200;     // single-reading jump larger than this → discard
 
 // ── Start maneuver ─────────────────────────────────────────────────────────
 constexpr float    START_FWD_SPEED   = 0.75f;  // forward speed during slight-turn start
