@@ -8,12 +8,13 @@
 constexpr int16_t SELECT_MM = 80;
 
 // ── Enemy detection ────────────────────────────────────────────────────────
-constexpr int16_t ENEMY_ANY_MM   = 800;   // any TOF < this → enemy visible
-constexpr int16_t ENEMY_FRONT_MM = 650;   // both front TOFs < this → attack straight
+constexpr int16_t ENEMY_ANY_MM   = 900;   // any TOF < this → enemy visible
+constexpr int16_t ENEMY_FRONT_MM = 900;   // both front TOFs < this → attack straight
 
 // ── Display scaling ────────────────────────────────────────────────────────
+constexpr int16_t TOF_MIN_MM   = 30;      // VL53L0X reliable min (crosstalk below this)
 constexpr int16_t TOF_MAX_MM   = 1000;    // VL53L0X reliable max @ 20 ms budget
-constexpr int16_t TOF_SPIKE_MM = 200;     // single-reading jump larger than this → discard
+constexpr int16_t TOF_SPIKE_MM = 150;     // single-reading jump larger than this → discard
 
 // ── Start maneuver ─────────────────────────────────────────────────────────
 constexpr float    START_FWD_SPEED   = 0.75f;  // forward speed during slight-turn start
@@ -32,6 +33,5 @@ constexpr float HOME_TURN = 0.55f;   // max differential added/subtracted per si
 // ── Attack ─────────────────────────────────────────────────────────────────
 constexpr float ATTACK_SPEED = 1.0f;
 
-// ── Impact → push (current PID) ───────────────────────────────────────────
-constexpr float IMPACT_CURR_A = 0.8f;   // spike on either motor → contact
-constexpr float PUSH_CURR_A   = 1.5f;   // current PID target while pushing
+// ── Push ──────────────────────────────────────────────────────────────────
+constexpr int16_t PUSH_DIST_MM = TOF_MAX_MM * 15 / 100;  // 15% of max range → push

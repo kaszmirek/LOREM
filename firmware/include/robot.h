@@ -39,9 +39,12 @@ private:
     bool     _tof_ready[6] = {};
     int16_t  _d[6]         = {};
     Strategy _strategy;
+    float    _lpwm = 0.0f, _rpwm = 0.0f;
 
     bool _poll_tofs();
     void _draw_tofs(const char* centre = "");
+    void _set_motors(float l, float r);
+    void _draw_fight();
 };
 
 // Start: PIN_START high → MANEUVER. Stop: PIN_START low → WAIT_START.

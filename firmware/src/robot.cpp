@@ -8,7 +8,20 @@
 
 // ── Internal helpers (file-local) ─────────────────────────────────────────
 
-static bool valid(int16_t d) { return d > 0; }
+static bool valid(int16_t d) { return d > 0 && d < TOF_MAX_MM; }
+
+static const char* state_name(State s) {
+    switch (s) {
+        case State::WAIT_START: return "WAIT";
+        case State::COUNTDOWN:  return "CNTDWN";
+        case State::MANEUVER:   return "MANUV";
+        case State::SEARCH:     return "SEARCH";
+        case State::HOME:       return "HOME";
+        case State::ATTACK:     return "ATTACK";
+        case State::PUSH:       return "PUSH";
+    }
+    return "?";
+}
 
 static const char* strategy_name(Strategy s) {
     switch (s) {
@@ -22,8 +35,8 @@ static const char* strategy_name(Strategy s) {
     return "?";
 }
 
-// Closest TOF below SELECT_MM wins; default ROT_RIGHT.
-static Strategy pick_strategy(const int16_t d[6]) {
+// Closest TOF below SELECT_MM wins. Returns false (no update) when nothing is in range.
+static bool pick_strategy(const int16_t d[6], Strategy& out) {
     int     best_i = -1;
     int16_t best_d = SELECT_MM;
     for (int i = 0; i < 6; i++) {
@@ -33,22 +46,24 @@ static Strategy pick_strategy(const int16_t d[6]) {
         }
     }
     switch (best_i) {
-        case 0: return Strategy::HARD_LEFT;
-        case 1: return Strategy::SLIGHT_LEFT;
-        case 2: return Strategy::ROT_LEFT;
-        case 3: return Strategy::ROT_RIGHT;
-        case 4: return Strategy::SLIGHT_RIGHT;
-        case 5: return Strategy::HARD_RIGHT;
-        default: return Strategy::ROT_RIGHT;
+        case 0: out = Strategy::HARD_LEFT;    return true;
+        case 1: out = Strategy::SLIGHT_LEFT;  return true;
+        case 2: out = Strategy::ROT_LEFT;     return true;
+        case 3: out = Strategy::ROT_RIGHT;    return true;
+        case 4: out = Strategy::SLIGHT_RIGHT; return true;
+        case 5: out = Strategy::HARD_RIGHT;   return true;
+        default: return false;
     }
 }
 
 struct Detection { bool left, front, right; };
 
 static Detection detect(const int16_t d[6]) {
+    bool front = (valid(d[2]) && d[2] < ENEMY_FRONT_MM) && (valid(d[3]) && d[3] < ENEMY_FRONT_MM);
+    if (front) return { .left = false, .front = true, .right = false };
     return {
         .left  = (valid(d[0]) && d[0] < ENEMY_ANY_MM) || (valid(d[1]) && d[1] < ENEMY_ANY_MM),
-        .front = (valid(d[2]) && d[2] < ENEMY_FRONT_MM) && (valid(d[3]) && d[3] < ENEMY_FRONT_MM),
+        .front = false,
         .right = (valid(d[4]) && d[4] < ENEMY_ANY_MM) || (valid(d[5]) && d[5] < ENEMY_ANY_MM),
     };
 }
@@ -72,6 +87,28 @@ static float steer(const int16_t d[6]) {
 void Robot::_brake_all() {
     _left.brake();
     _right.brake();
+    _lpwm = _rpwm = 0.0f;
+}
+
+void Robot::_set_motors(float l, float r) {
+    _left.set_pwm(l);
+    _right.set_pwm(r);
+    _lpwm = l;
+    _rpwm = r;
+}
+
+// Row 0: state name
+// Row 1: LC  LF  RF  RC   (front arc)
+// Row 2: L  [Lmot Rmot]  R
+void Robot::_draw_fight() {
+    char motor_buf[8];
+    int lm = std::clamp((int)(_lpwm * 100), -99, 99);
+    int rm = std::clamp((int)(_rpwm * 100), -99, 99);
+    snprintf(motor_buf, 8, "%+3d%+3d", lm, rm);
+    _oled.clear();
+    _oled.printf(0, 0, "%-21s", state_name(_state));
+    _draw_tofs(motor_buf);
+    _oled.display();
 }
 
 Robot::Robot(Motor& left, Motor& right, OLED& oled,
@@ -107,7 +144,7 @@ bool Robot::_poll_tofs() {
 void Robot::_draw_tofs(const char* centre) {
     char s[6][4];
     for (int i = 0; i < 6; i++) {
-        if (_d[i] <= 0) { s[i][0]='-'; s[i][1]='-'; s[i][2]='-'; s[i][3]='\0'; }
+        if (!valid(_d[i])) { s[i][0]='-'; s[i][1]='-'; s[i][2]='-'; s[i][3]='\0'; }
         else {
             int p = (int)_d[i] * 100 / TOF_MAX_MM;
             if (p > 999) p = 999;
@@ -132,19 +169,19 @@ void Robot::update() {
     // ──────────────────────────────────────────────────────────────────────
     case State::WAIT_START:
         if (new_tof) {
-            _strategy = pick_strategy(_d);
+            pick_strategy(_d, _strategy);
             _oled.clear();
             _oled.printf(0, 0, "%-21s", strategy_name(_strategy));
             _draw_tofs();
             _oled.display();
             printf("%-12s | LC:%3d%% LF:%3d%% RF:%3d%% RC:%3d%% | L:%3d%% R:%3d%%\n",
                 strategy_name(_strategy),
-                _d[1]>0 ? _d[1]*100/TOF_MAX_MM : -1,
-                _d[2]>0 ? _d[2]*100/TOF_MAX_MM : -1,
-                _d[3]>0 ? _d[3]*100/TOF_MAX_MM : -1,
-                _d[4]>0 ? _d[4]*100/TOF_MAX_MM : -1,
-                _d[0]>0 ? _d[0]*100/TOF_MAX_MM : -1,
-                _d[5]>0 ? _d[5]*100/TOF_MAX_MM : -1);
+                valid(_d[1]) ? _d[1]*100/TOF_MAX_MM : -1,
+                valid(_d[2]) ? _d[2]*100/TOF_MAX_MM : -1,
+                valid(_d[3]) ? _d[3]*100/TOF_MAX_MM : -1,
+                valid(_d[4]) ? _d[4]*100/TOF_MAX_MM : -1,
+                valid(_d[0]) ? _d[0]*100/TOF_MAX_MM : -1,
+                valid(_d[5]) ? _d[5]*100/TOF_MAX_MM : -1);
         }
 
         _check_start();
@@ -168,37 +205,33 @@ void Robot::update() {
     case State::MANEUVER:
         switch (_strategy) {
         case Strategy::HARD_LEFT:
-            _left.set_pwm(-START_HARD_TURN);
-            _right.set_pwm(+START_HARD_TURN);
+            _set_motors(-START_HARD_TURN, +START_HARD_TURN);
             break;
         case Strategy::SLIGHT_LEFT:
-            _left.set_pwm(START_FWD_SPEED - START_SLIGHT_BIAS);
-            _right.set_pwm(START_FWD_SPEED);
+            _set_motors(START_FWD_SPEED - START_SLIGHT_BIAS, START_FWD_SPEED);
             break;
         case Strategy::ROT_LEFT:
-            _left.set_pwm(-START_HARD_TURN);
-            _right.set_pwm(+START_HARD_TURN);
+            _set_motors(-START_HARD_TURN, +START_HARD_TURN);
             break;
         case Strategy::ROT_RIGHT:
-            _left.set_pwm(+START_HARD_TURN);
-            _right.set_pwm(-START_HARD_TURN);
+            _set_motors(+START_HARD_TURN, -START_HARD_TURN);
             break;
         case Strategy::SLIGHT_RIGHT:
-            _left.set_pwm(START_FWD_SPEED);
-            _right.set_pwm(START_FWD_SPEED - START_SLIGHT_BIAS);
+            _set_motors(START_FWD_SPEED, START_FWD_SPEED - START_SLIGHT_BIAS);
             break;
         case Strategy::HARD_RIGHT:
-            _left.set_pwm(+START_HARD_TURN);
-            _right.set_pwm(-START_HARD_TURN);
+            _set_motors(+START_HARD_TURN, -START_HARD_TURN);
             break;
         }
+
+        if (new_tof) _draw_fight();
 
         if (in_state_ms >= START_MANEUVER_MS) {
             if (new_tof) {
                 Detection det = detect(_d);
-                if (det.front)                _state = State::ATTACK;
-                else if (det.left || det.right) _state = State::HOME;
-                else                           _state = State::SEARCH;
+                if (det.front)                  _state = State::ATTACK;
+                else if (det.left || det.right)  _state = State::HOME;
+                else                             _state = State::SEARCH;
             } else {
                 _state = State::SEARCH;
             }
@@ -208,18 +241,16 @@ void Robot::update() {
 
     // ──────────────────────────────────────────────────────────────────────
     case State::SEARCH:
-        if ((in_state_ms / SEARCH_FLIP_MS) % 2 == 0) {
-            _left.set_pwm(+SEARCH_TURN_SPEED);
-            _right.set_pwm(-SEARCH_TURN_SPEED);
-        } else {
-            _left.set_pwm(-SEARCH_TURN_SPEED);
-            _right.set_pwm(+SEARCH_TURN_SPEED);
-        }
+        if ((in_state_ms / SEARCH_FLIP_MS) % 2 == 0)
+            _set_motors(+SEARCH_TURN_SPEED, -SEARCH_TURN_SPEED);
+        else
+            _set_motors(-SEARCH_TURN_SPEED, +SEARCH_TURN_SPEED);
 
         if (new_tof) {
             Detection det = detect(_d);
             if (det.front)                  { _state = State::ATTACK; _state_t = now; }
             else if (det.left || det.right)  { _state = State::HOME;   _state_t = now; }
+            _draw_fight();
         }
         break;
 
@@ -234,39 +265,36 @@ void Robot::update() {
                 _state = State::SEARCH; _state_t = now; break;
             }
             float s = steer(_d);  // positive → turn right
-            _left.set_pwm( std::clamp(HOME_FWD + HOME_TURN * s, -1.0f, 1.0f));
-            _right.set_pwm(std::clamp(HOME_FWD - HOME_TURN * s, -1.0f, 1.0f));
+            _set_motors(std::clamp(HOME_FWD + HOME_TURN * s, -1.0f, 1.0f),
+                        std::clamp(HOME_FWD - HOME_TURN * s, -1.0f, 1.0f));
+            _draw_fight();
         }
         break;
 
     // ──────────────────────────────────────────────────────────────────────
     case State::ATTACK:
-        _left.set_pwm(ATTACK_SPEED);
-        _right.set_pwm(ATTACK_SPEED);
-
-        if (_imu.tap_detected()) {
-            _left.set_curr_target(PUSH_CURR_A);
-            _right.set_curr_target(PUSH_CURR_A);
-            _state   = State::PUSH;
-            _state_t = now;
-            break;
-        }
+        _set_motors(ATTACK_SPEED, ATTACK_SPEED);
 
         if (new_tof) {
-            Detection det = detect(_d);
-            if (!det.front && !det.left && !det.right) { _state = State::SEARCH; _state_t = now; }
-            else if (!det.front)                        { _state = State::HOME;   _state_t = now; }
+            bool close = (valid(_d[2]) && _d[2] < PUSH_DIST_MM) ||
+                         (valid(_d[3]) && _d[3] < PUSH_DIST_MM);
+            if (close) {
+                _state   = State::PUSH;
+                _state_t = now;
+            } else {
+                Detection det = detect(_d);
+                if (!det.front && !det.left && !det.right) { _state = State::SEARCH; _state_t = now; }
+                else if (!det.front)                        { _state = State::HOME;   _state_t = now; }
+            }
+            _draw_fight();
         }
         break;
 
     // ──────────────────────────────────────────────────────────────────────
     case State::PUSH:
-        // Current PID drives both motors at max push current.
-        // If load drops off (enemy fell/escaped), go back to searching.
-        if (_left.current_a()  < IMPACT_CURR_A * 0.4f &&
-            _right.current_a() < IMPACT_CURR_A * 0.4f) {
-            _state = State::SEARCH; _state_t = now;
-        }
+        _set_motors(1.0f, 1.0f);
+
+        if (new_tof) _draw_fight();
         break;
     }
 }

@@ -12,7 +12,8 @@ init:
 	git submodule update --init --recursive
 
 configure:
-	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+	cmake -B $(BUILD) -DPICO_SDK_PATH=$(SDK) -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+		-DCMAKE_TOOLCHAIN_FILE=$(SDK)/cmake/preload/toolchains/pico_arm_cortex_m0plus_gcc.cmake
 
 lsp: $(BUILD)/Makefile
 	ln -sf $(BUILD)/compile_commands.json compile_commands.json

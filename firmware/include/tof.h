@@ -35,4 +35,5 @@ private:
     uint    _xshut;
     uint8_t _addr;
     int16_t _last_good = -1;
+    bool    _prev_rejected = false;
 };
